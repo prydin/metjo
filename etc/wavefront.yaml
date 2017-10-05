@@ -1,0 +1,12 @@
+includes:
+  - "com.ebberod.*"
+  - "java.net.Socket.Socket"
+reporter: wavefront
+properties:
+  proxy: "localhost"
+  port: 2878
+  period: 20
+  pointtags:
+    dc: "virtualviking.net"
+    service: "myService"
+    jvmMetrics: true
