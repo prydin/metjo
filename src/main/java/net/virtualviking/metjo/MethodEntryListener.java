@@ -1,13 +1,26 @@
-package net.virtualviking.pojoe;
+/*
+ *  Copyright 2017 Pontus Rydin
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package net.virtualviking.metjo;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
 import java.util.Stack;
 
-/**
- * Created by prydin on 10/4/17.
- */
 public class MethodEntryListener {
 
     private static class ThreadData {
@@ -23,7 +36,7 @@ public class MethodEntryListener {
         registry = r;
     }
 
-    public static void onMethodEntry(String method, Object context, Object[] arguments) {
+    public static void onMethodEntry(String method) {
         ThreadData td = threadData.get();
         if(td == null) {
             td = new ThreadData();
@@ -32,6 +45,7 @@ public class MethodEntryListener {
 
         // Are we reentering the probe because we called a probed method from within the probe?
         // Get us out of here to prevent infinite recursion!
+        //
         if(td.inProbe)
             return;
         td.inProbe = true;
@@ -43,7 +57,7 @@ public class MethodEntryListener {
         }
     }
 
-    public static void onMethodExit(Object returnValue) {
+    public static void onMethodExit(    ) {
         ThreadData td = threadData.get();
         if(td == null || td.contextStack.size() == 0) {
             System.err.println("WARNING: Method exit without entry");

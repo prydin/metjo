@@ -1,24 +1,40 @@
-package net.virtualviking.pojoe;
+/*
+ *  Copyright 2017 Pontus Rydin
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package net.virtualviking.metjo;
 
 import com.codahale.metrics.MetricRegistry;
-import com.wavefront.integrations.metrics.WavefrontReporter;
-import net.virtualviking.pojoe.reporters.WavefrontFactory;
+import net.virtualviking.metjo.reporters.ConsoleFactory;
+import net.virtualviking.metjo.reporters.WavefrontFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileInputStream;
 import java.lang.instrument.Instrumentation;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-/**
- * Created by prydin on 10/4/17.
- */
+
 public class Agent {
     private static final HashMap<String, ReporterFactory> factories = new HashMap<>();
 
     static {
         factories.put("wavefront", new WavefrontFactory());
+        factories.put("console", new ConsoleFactory());
     }
 
     public static void premain(String agentArgs, Instrumentation inst) throws Exception {
@@ -39,7 +55,17 @@ public class Agent {
         }
         MetricRegistry registry = new MetricRegistry();
         rf.makeReporter(registry, (Map<Object, Object>) config.get("properties"));
-        inst.addTransformer(new MetjoTransformer(new String[] { "com.ebberod.*", "java.util.HashMap.*" }, new String[0] ));
+
+        List<String> inc = (List<String>) config.get("includes");
+        if(inc == null) {
+            inc = Collections.EMPTY_LIST;
+        }
+        List<String> ex = (List<String>) config.get("excludes");
+        if(ex == null) {
+            ex = Collections.EMPTY_LIST;
+        }
+
+        inst.addTransformer(new MetjoTransformer(inc, ex));
         MethodEntryListener.setMetricRegistry(registry);
     }
 }

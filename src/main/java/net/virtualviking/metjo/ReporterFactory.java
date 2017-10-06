@@ -14,25 +14,13 @@
  *  limitations under the License.
  */
 
-package net.virtualviking.pojoe;
+package net.virtualviking.metjo;
 
-public class MetjoException extends Exception {
-    public MetjoException() {
-    }
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Reporter;
 
-    public MetjoException(String message) {
-        super(message);
-    }
+import java.util.Map;
 
-    public MetjoException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public MetjoException(Throwable cause) {
-        super(cause);
-    }
-
-    public MetjoException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
+public interface ReporterFactory {
+    Reporter makeReporter(MetricRegistry registry, Map<Object, Object> config) throws MetjoException;
 }

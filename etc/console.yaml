@@ -1,0 +1,4 @@
+reporter: console
+properties:
+  output: stdout
+  period: 20

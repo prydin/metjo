@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
-Premain-Class: net.virtualviking.pojoe.Agent
+Premain-Class: net.virtualviking.metjo.Agent
 Can-Redefine-Classes: true
 Can-Retransform-Classes: true

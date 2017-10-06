@@ -14,16 +14,14 @@
  *  limitations under the License.
  */
 
-package net.virtualviking.pojoe.reporters;
+package net.virtualviking.metjo.reporters;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reporter;
 import com.wavefront.integrations.metrics.WavefrontReporter;
-import net.virtualviking.pojoe.MetjoException;
-import net.virtualviking.pojoe.ReporterFactory;
+import net.virtualviking.metjo.MetjoException;
+import net.virtualviking.metjo.ReporterFactory;
 
-import java.sql.Time;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
