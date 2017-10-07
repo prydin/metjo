@@ -16,9 +16,13 @@
 
 package net.virtualviking.metjo;
 
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.codahale.metrics.annotation.Gauge;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 public class MethodEntryListener {
@@ -32,11 +36,17 @@ public class MethodEntryListener {
 
     private static MetricRegistry registry;
 
+    private static Map<String, List<MetjoTransformer.CapturedParameter>> capturedParameters;
+
     public static void setMetricRegistry(MetricRegistry r) {
         registry = r;
     }
 
-    public static void onMethodEntry(String method) {
+    public static void setCapturedParameters(Map<String, List<MetjoTransformer.CapturedParameter>> p) {
+        capturedParameters = p;
+    }
+
+    public static void onMethodEntry(String method, String fullMethodName, Object[] parameters, boolean hasCapturedParameter) {
         ThreadData td = threadData.get();
         if(td == null) {
             td = new ThreadData();
@@ -50,14 +60,31 @@ public class MethodEntryListener {
             return;
         td.inProbe = true;
         try {
-           Timer t = registry.timer(method);
+            // Create timer context
+            //
+            Timer t = registry.timer(method);
             td.contextStack.push(t.time());
+
+            // Capture parameters if needed
+            //
+            if(hasCapturedParameter) {
+                List<MetjoTransformer.CapturedParameter> cps = capturedParameters.get(method);
+                if(cps != null) {
+                    for (MetjoTransformer.CapturedParameter cp : cps) {
+                        Object o = parameters[cp.getIndex()];
+                        if (!(o instanceof Number)) {
+                            continue;
+                        }
+                        cp.getReceiver().update(((Number) o).longValue());
+                    }
+                }
+            }
         } finally {
             td.inProbe = false;
         }
     }
 
-    public static void onMethodExit(    ) {
+    public static void onMethodExit() {
         ThreadData td = threadData.get();
         if(td == null || td.contextStack.size() == 0) {
             System.err.println("WARNING: Method exit without entry");

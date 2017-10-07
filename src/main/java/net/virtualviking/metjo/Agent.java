@@ -64,8 +64,7 @@ public class Agent {
         if(ex == null) {
             ex = Collections.EMPTY_LIST;
         }
-
-        inst.addTransformer(new MetjoTransformer(inc, ex));
+        inst.addTransformer(new MetjoTransformer(registry, inc, ex, (List<Map<String, String>>) config.get("parameters")));
         MethodEntryListener.setMetricRegistry(registry);
     }
 }

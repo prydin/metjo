@@ -16,6 +16,8 @@
 
 package net.virtualviking.metjo;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.annotation.Timed;
 import javassist.*;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
@@ -27,25 +29,85 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by prydin on 10/4/17.
  */
 public class MetjoTransformer implements ClassFileTransformer {
-    private WildcardFileFilter[] includes;
-    private WildcardFileFilter[] excludes;
+    static public final class CapturedParameter {
+        private final int index;
+
+        private final String name;
+
+        private Histogram receiver;
+
+        public CapturedParameter(int index, String name, Histogram receiver) {
+            this.index = index;
+            this.name = name;
+            this.receiver = receiver;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Histogram getReceiver() {
+            return receiver;
+        }
+
+    }
+
+    private final MetricRegistry registry;
+    private final WildcardFileFilter[] includes;
+    private final WildcardFileFilter[] excludes;
+    private final Map<String, List<CapturedParameter>> capturedParameters = new HashMap<>();
 
     private static final MessageFormat methodEntryProbe = new MessageFormat(
-            "net.virtualviking.metjo.MethodEntryListener.onMethodEntry(\"{0}\");");
+            "net.virtualviking.metjo.MethodEntryListener.onMethodEntry(\"{0}\", \"{1}\", {2}, {3});");
 
     private static final MessageFormat methodExitProbe = new MessageFormat(
             "net.virtualviking.metjo.MethodEntryListener.onMethodExit();");
 
 
-    public MetjoTransformer(List<String> includes, List<String> excludes) {
+    public MetjoTransformer(MetricRegistry registry, List<String> includes, List<String> excludes, List<Map<String, String>> parameters) {
+        this.registry = registry;
         this.includes = createFilters(includes);
         this.excludes = createFilters(excludes);
+        if (parameters != null) {
+            for (Map<String, String> p : parameters) {
+                String name = p.get("name");
+                String param = p.get("parameter");
+                int i = param.lastIndexOf('.');
+                if (i == -1) {
+                    System.err.println("WARNING: Invalid syntax of parameter metric. Skipping. Parameter: " + param);
+                    continue;
+                }
+                try {
+                    String method = param.substring(0, i);
+                    String index = param.substring(i + 1);
+                    int paramIndex = Integer.valueOf(index);
+                    List<CapturedParameter> entry = capturedParameters.get(method);
+                    if (entry == null) {
+                        entry = new ArrayList<>();
+                        capturedParameters.put(method, entry);
+                    }
+                    Histogram receiver = registry.histogram(name);
+                    entry.add(new CapturedParameter(paramIndex, name, receiver));
+                    MethodEntryListener.setCapturedParameters(capturedParameters);
+                } catch (NumberFormatException e) {
+                    System.err.println("WARNING: Last part of parameter specifier must be integer. Skipping. Parameter: " + param);
+                    continue;
+                }
+            }
+        }
     }
 
     private static WildcardFileFilter[] createFilters(List<String> strings) {
@@ -61,6 +123,7 @@ public class MetjoTransformer implements ClassFileTransformer {
         try {
             ClassPool pool = ClassPool.getDefault();
             CtClass clazz = pool.makeClass(new ByteArrayInputStream(classfileBuffer));
+
             //System.err.println(clazz.getName());
             boolean touched = false;
             for (CtBehavior behavior : clazz.getDeclaredBehaviors()) {
@@ -81,11 +144,11 @@ public class MetjoTransformer implements ClassFileTransformer {
                         || (match(includes, fullMethodName)
                         && !match(excludes, fullMethodName)))) {
                     continue;
-                }
+                }ß
 
                 System.err.println("Instrumenting method: " + fullMethodName + " mods=" + behavior.getModifiers());
                 try {
-                    touched |= instrument(behavior, absolute ? fullMethodName : behavior.getName());
+                    touched |= instrument(behavior, absolute ? fullMethodName : behavior.getName(), fullMethodName);
                 } catch (CannotCompileException e) {
                     System.err.println("Instrumentation failed: " + e.getMessage());
                 }
@@ -105,9 +168,9 @@ public class MetjoTransformer implements ClassFileTransformer {
         }
     }
 
-    private boolean instrument(CtBehavior behavior, String methodName)
+    private boolean instrument(CtBehavior behavior, String methodName, String fullMethodName)
             throws CannotCompileException {
-        Object entryArgs = new Object[]{ methodName };
+        Object entryArgs = new Object[]{ methodName, fullMethodName, "$args", capturedParameters.containsKey(fullMethodName) };
         behavior.insertBefore(methodEntryProbe.format(entryArgs));
 
         Object exitArgs = new Object[0];

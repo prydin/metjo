@@ -1,9 +1,12 @@
-#includes:
-  #- "com.ebberod.*"
-  #- "java.net.URI.*"
-  #- "org.apache.tomcat.*"
-#excludes:
-  #- "org.apache.tomcat.util.res.StringManager.getManager"
+includes:
+  - "com.ebberod.*"
+  - "java.net.URI.*"
+  - "org.apache.tomcat.*"
+excludes:
+  - "org.apache.tomcat.util.res.StringManager.getManager"
+parameters:
+  - name: "trader.amount"
+    parameter: "com.ebberod.trader.MarketLink.placeOrder.2"
 reporter: wavefront
 properties:
   proxy: "localhost"
