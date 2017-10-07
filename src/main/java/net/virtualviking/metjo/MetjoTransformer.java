@@ -144,7 +144,7 @@ public class MetjoTransformer implements ClassFileTransformer {
                         || (match(includes, fullMethodName)
                         && !match(excludes, fullMethodName)))) {
                     continue;
-                }ß
+                }
 
                 System.err.println("Instrumenting method: " + fullMethodName + " mods=" + behavior.getModifiers());
                 try {
