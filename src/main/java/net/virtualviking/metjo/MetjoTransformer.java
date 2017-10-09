@@ -16,6 +16,7 @@
 
 package net.virtualviking.metjo;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.annotation.Timed;
@@ -43,9 +44,9 @@ public class MetjoTransformer implements ClassFileTransformer {
 
         private final String name;
 
-        private Histogram receiver;
+        private Updateable receiver;
 
-        public CapturedParameter(int index, String name, Histogram receiver) {
+        public CapturedParameter(int index, String name, Updateable receiver) {
             this.index = index;
             this.name = name;
             this.receiver = receiver;
@@ -59,7 +60,7 @@ public class MetjoTransformer implements ClassFileTransformer {
             return name;
         }
 
-        public Histogram getReceiver() {
+        public Updateable getReceiver() {
             return receiver;
         }
 
@@ -85,6 +86,10 @@ public class MetjoTransformer implements ClassFileTransformer {
             for (Map<String, String> p : parameters) {
                 String name = p.get("name");
                 String param = p.get("parameter");
+                String aggregation = p.get("aggregation");
+                if(aggregation == null) {
+                    aggregation = "histogram";
+                }
                 int i = param.lastIndexOf('.');
                 if (i == -1) {
                     System.err.println("WARNING: Invalid syntax of parameter metric. Skipping. Parameter: " + param);
@@ -99,7 +104,17 @@ public class MetjoTransformer implements ClassFileTransformer {
                         entry = new ArrayList<>();
                         capturedParameters.put(method, entry);
                     }
-                    Histogram receiver = registry.histogram(name);
+                    Updateable receiver = null;
+                    if("histogram".equals(aggregation)) {
+                        receiver = new HistogramWrapper(registry.histogram(name));
+                    } else if("summation".equals(aggregation)) {
+                        SummationGauge g = new SummationGauge();
+                        registry.register(name, g);
+                        receiver = g;
+                    } else {
+                        System.err.println("Aggregation must be 'summation' or 'histogram'. Skipping parameter " + name);
+                        continue;
+                    }
                     entry.add(new CapturedParameter(paramIndex, name, receiver));
                     MethodEntryListener.setCapturedParameters(capturedParameters);
                 } catch (NumberFormatException e) {

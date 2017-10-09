@@ -5,8 +5,9 @@ includes:
 excludes:
   - "org.apache.tomcat.util.res.StringManager.getManager"
 parameters:
-  - name: "trader.amount"
+  - name: "trader.totalAmount"
     parameter: "com.ebberod.trader.MarketLink.placeOrder.2"
+    aggregation: "summation"
 reporter: wavefront
 properties:
   proxy: "localhost"
