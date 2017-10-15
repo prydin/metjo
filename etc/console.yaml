@@ -2,3 +2,16 @@ reporter: console
 properties:
   output: stdout
   period: 20
+includes:
+  - "com.ebberod.*"
+  - "java.net.URI.*"
+  - "org.apache.tomcat.*"
+excludes:
+  - "org.apache.tomcat.util.res.StringManager.getManager"
+parameters:
+  - name: "trader.totalAmount"
+    parameter: "com.ebberod.trader.MarketLink.placeOrder.2"
+    aggregation: "summation"
+  - name: "trader.amount"
+    parameter: "com.ebberod.trader.MarketLink.placeOrder.2"
+    aggregation: "histogram"

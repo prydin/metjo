@@ -8,6 +8,9 @@ parameters:
   - name: "trader.totalAmount"
     parameter: "com.ebberod.trader.MarketLink.placeOrder.2"
     aggregation: "summation"
+  - name: "trader.amount"
+    parameter: "com.ebberod.trader.MarketLink.placeOrder.2"
+    aggregation: "histogram"
 reporter: wavefront
 properties:
   proxy: "localhost"

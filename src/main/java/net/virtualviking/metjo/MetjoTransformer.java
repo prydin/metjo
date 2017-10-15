@@ -16,8 +16,6 @@
 
 package net.virtualviking.metjo;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.annotation.Timed;
 import javassist.*;
@@ -72,7 +70,10 @@ public class MetjoTransformer implements ClassFileTransformer {
     private final Map<String, List<CapturedParameter>> capturedParameters = new HashMap<>();
 
     private static final MessageFormat methodEntryProbe = new MessageFormat(
-            "net.virtualviking.metjo.MethodEntryListener.onMethodEntry(\"{0}\", \"{1}\", {2}, {3});");
+            "net.virtualviking.metjo.MethodEntryListener.onMethodEntry(\"{0}\", \"{1}\");");
+
+    private static final MessageFormat methodEntryProbeWithArgs = new MessageFormat(
+            "net.virtualviking.metjo.MethodEntryListener.onMethodEntryWithArgs(\"{0}\", \"{1}\", $args);");
 
     private static final MessageFormat methodExitProbe = new MessageFormat(
             "net.virtualviking.metjo.MethodEntryListener.onMethodExit();");
@@ -169,15 +170,7 @@ public class MetjoTransformer implements ClassFileTransformer {
                 }
             }
             return touched ? clazz.toBytecode() : null;
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error instrumenting class " + className);
-        }
-        catch (CannotCompileException e) {
-            System.err.println("Instrumentation failed: " + e.getMessage());
-            throw new RuntimeException("Error instrumenting class " + className);
-        }
-        catch (ClassNotFoundException e) {
+        } catch (Exception e) {
             System.err.println("Instrumentation failed: " + e.getMessage());
             throw new RuntimeException("Error instrumenting class " + className);
         }
@@ -185,9 +178,10 @@ public class MetjoTransformer implements ClassFileTransformer {
 
     private boolean instrument(CtBehavior behavior, String methodName, String fullMethodName)
             throws CannotCompileException {
-        Object entryArgs = new Object[]{ methodName, fullMethodName, "$args", capturedParameters.containsKey(fullMethodName) };
-        behavior.insertBefore(methodEntryProbe.format(entryArgs));
-
+        boolean includeArgs = capturedParameters.containsKey(fullMethodName);
+        Object entryArgs = new Object[]{ methodName, fullMethodName };
+        MessageFormat format = includeArgs ? methodEntryProbeWithArgs : methodEntryProbe;
+        behavior.insertBefore(format.format(entryArgs));
         Object exitArgs = new Object[0];
         behavior.insertAfter(methodExitProbe.format(exitArgs), true);
 

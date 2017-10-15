@@ -46,7 +46,7 @@ public class MethodEntryListener {
         capturedParameters = p;
     }
 
-    public static void onMethodEntry(String method, String fullMethodName, Object[] parameters, boolean hasCapturedParameter) {
+    public static void onMethodEntryWithArgs(String method, String fullMethodName, Object[] parameters) {
         ThreadData td = threadData.get();
         if(td == null) {
             td = new ThreadData();
@@ -65,20 +65,41 @@ public class MethodEntryListener {
             Timer t = registry.timer(method);
             td.contextStack.push(t.time());
 
-            // Capture parameters if needed
+            // Capture parameters
             //
-            if(hasCapturedParameter) {
-                List<MetjoTransformer.CapturedParameter> cps = capturedParameters.get(method);
-                if(cps != null) {
-                    for (MetjoTransformer.CapturedParameter cp : cps) {
-                        Object o = parameters[cp.getIndex()];
-                        if (!(o instanceof Number)) {
-                            continue;
-                        }
-                        cp.getReceiver().update(((Number) o).longValue());
+            List<MetjoTransformer.CapturedParameter> cps = capturedParameters.get(fullMethodName);
+            if(cps != null) {
+                for (MetjoTransformer.CapturedParameter cp : cps) {
+                    Object o = parameters[cp.getIndex()];
+                    if (!(o instanceof Number)) {
+                        continue; // Just silently skip anything that's not a number.
                     }
+                    cp.getReceiver().update(((Number) o).longValue());
                 }
             }
+        } finally {
+            td.inProbe = false;
+        }
+    }
+
+    public static void onMethodEntry(String method, String fullMethodName) {
+        ThreadData td = threadData.get();
+        if(td == null) {
+            td = new ThreadData();
+            threadData.set(td);
+        }
+
+        // Are we reentering the probe because we called a probed method from within the probe?
+        // Get us out of here to prevent infinite recursion!
+        //
+        if(td.inProbe)
+            return;
+        td.inProbe = true;
+        try {
+            // Create timer context
+            //
+            Timer t = registry.timer(method);
+            td.contextStack.push(t.time());
         } finally {
             td.inProbe = false;
         }
