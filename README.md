@@ -2,7 +2,7 @@
 MetJo - A Simple Bytecode Instrumentation Provider for Dropwizard Metrics
 
 ## Introduction
-MetJo is a portmantuea for "Metrics for POJOs". It also appears to be a fairly common name in Suriname. 
+MetJo is a portmanteau for "Metrics for POJOs". It also appears to be a fairly common name in Suriname. 
 
 MetJo was originally built to showcase method-level timing metrics with Dropwizard Metrics, but ended up taking on a life of its own.
 
